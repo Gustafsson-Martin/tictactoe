@@ -2,65 +2,46 @@ package main.java.tf.martin.tictactoe;
 
 import java.awt.*;
 import java.awt.event.ActionListener;
-
 import javax.swing.*;
 
 public class GUI extends JFrame implements BoardObserver {
-    final int FRAME_MIN_HEIGHT = 600;
-    final int FRAME_MIN_WIDTH = 800;
-
-    JButton[][] buttons = new JButton[3][3];
-    JLabel winnerLabel = new JLabel(String.format("Winner: %s", Piece.NONE));
+    private static final int FRAME_MIN_WIDTH = 800;
+    private static final int FRAME_MIN_HEIGHT = 600;
+    private static final Color GRAY_ISH = new Color(230, 230, 230);
+    
+    private JButton[][] buttons = new JButton[3][3];
+    private JLabel winnerLabel;
+    private GridBagConstraints gridBagConstraints = new GridBagConstraints();
 
     private final Board board;
-    
+    private final int rows;
+    private final int columns;
+
     public GUI(Board board, PlacePieceActionFactory buttonPressActionFactory, ActionListener restartButtonAction) {
         super("Tic Tac Toe");
-    
         this.board = board;
+        this.rows = board.getRows();
+        this.columns = board.getColumns();
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(800, 600));
+        setMinimumSize(new Dimension(FRAME_MIN_WIDTH, FRAME_MIN_HEIGHT));
+        setLayout(new GridBagLayout());
 
-        JPanel contentPane = new JPanel();
-        contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.LINE_AXIS));
-        setContentPane(contentPane);
+        JPanel buttonPanel = createButtonPanel(buttonPressActionFactory);
+        JPanel sidePanel = createSidePanel(restartButtonAction);
 
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(3, 3));
-        buttonPanel.setBackground(new Color(0, 0, 0));
-
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                buttons[row][col] = new JButton();
-                buttons[row][col].setFont(new Font("Serif", Font.BOLD, 120));
-                buttons[row][col].setFocusable(false);
-                buttons[row][col].addActionListener(buttonPressActionFactory.build(row, col));
-                buttons[row][col].setBackground(Color.white);
-                buttons[row][col].setText(" ");
-                buttons[row][col].setBorder(BorderFactory.createLineBorder(Color.black, 8));
-                buttonPanel.add(buttons[row][col]);
-            }
-        }
-
-        JPanel sidePanel = new JPanel();
-        sidePanel.setLayout(new GridLayout(2, 1));
-        sidePanel.setBackground(new Color(230, 230, 230));
-
-        winnerLabel.setFont(new Font("Serif", Font.BOLD, 16));
-
-        JButton restartButton = new JButton();
-        restartButton.setFont(new Font("Serif", Font.BOLD, 16));
-        restartButton.addActionListener(restartButtonAction);
-        restartButton.setBackground(Color.LIGHT_GRAY);
-        restartButton.setText("Restart");
-        restartButton.setBorder(BorderFactory.createLineBorder(Color.black, 2));
-
-        sidePanel.add(winnerLabel);
-        sidePanel.add(restartButton);
-
-        add(buttonPanel);
-        add(sidePanel);
+        gridBagConstraints.fill = GridBagConstraints.BOTH;
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.weightx = 0.8;
+        gridBagConstraints.weighty = 1;
+        add(buttonPanel, gridBagConstraints);
+        gridBagConstraints.fill = GridBagConstraints.BOTH;
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.weightx = 0.2;
+        gridBagConstraints.weighty = 1;
+        add(sidePanel, gridBagConstraints);
         pack();
         setVisible(true);
     }
@@ -71,6 +52,15 @@ public class GUI extends JFrame implements BoardObserver {
 
     @Override
     public void onBoardChange() {
+        setBoardText();
+    }
+
+    @Override
+    public void onStateChange() {
+        winnerLabel.setText(String.format("State: %s", board.getState()));
+    }
+
+    private void setBoardText() {
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
                 buttons[row][col].setText(board.pieceAtPositionAsString(row, col));
@@ -78,8 +68,63 @@ public class GUI extends JFrame implements BoardObserver {
         }
     }
 
-    @Override
-    public void onPlayerWin(Piece winner) {
-        winnerLabel.setText(String.format("Winner: %s", winner));
+    private JPanel createButtonPanel(PlacePieceActionFactory buttonPressActionFactory) {
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(rows, columns));
+        buttonPanel.setBackground(Color.BLACK);
+
+        createButtons(buttonPressActionFactory);
+        for (int row = 0; row < rows; row++) {
+            for (int columnn = 0; columnn < columns; columnn++) {
+                buttonPanel.add(buttons[row][columnn]);
+            }
+        }
+        return buttonPanel;
+    }
+
+    private JPanel createSidePanel(ActionListener restartButtonAction) {
+        JPanel sidePanel = new JPanel();
+        sidePanel.setLayout(new BoxLayout(sidePanel, BoxLayout.Y_AXIS));
+        sidePanel.setBackground(GRAY_ISH);
+    
+        winnerLabel = new JLabel(String.format("State: %s", board.getState()));
+        winnerLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        winnerLabel.setPreferredSize(new Dimension(100, 64));
+    
+        JButton restartButton = new JButton();
+        restartButton.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        restartButton.addActionListener(restartButtonAction);
+        restartButton.setBackground(Color.LIGHT_GRAY);
+        restartButton.setText("Restart");
+        restartButton.setBorder(BorderFactory.createLineBorder(Color.black, 1));
+        restartButton.setPreferredSize(new Dimension(100, 64));
+    
+        sidePanel.add(winnerLabel);
+        sidePanel.add(Box.createRigidArea(new Dimension(0, 10))); // add spacing between components
+        sidePanel.add(restartButton);
+        return sidePanel;
+    }
+
+    private void createButtons(PlacePieceActionFactory buttonPressActionFactory) {
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 3; col++) {
+                JButton button = new JButton();
+                Font font = new Font("Serif", Font.BOLD, 120);
+                button.setFont(font);
+                button.setFocusable(false);
+                button.addActionListener(buttonPressActionFactory.build(row, col));
+                button.setBackground(Color.white);
+                button.setBorder(BorderFactory.createLineBorder(Color.black, 8));
+                button.setPreferredSize(calculateContentSizeBasedOnFont(button, font));
+                buttons[row][col] = button;
+            }
+        }
+    }
+
+    private Dimension calculateContentSizeBasedOnFont(JButton button, Font font) {
+        FontMetrics metrics = button.getFontMetrics(font);
+        int width = metrics.stringWidth(button.getText());
+        int height = metrics.getHeight();
+        return new Dimension(width + 20, height + 10);
     }
 }

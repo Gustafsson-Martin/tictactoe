@@ -9,24 +9,56 @@ enum Piece {
     CIRCLE
 }
 
+enum State {
+    IN_PROGRESS,
+    DRAW,
+    CROSS_WIN,
+    CIRCLE_WIN
+}
+
+class Cell {
+    public int row;
+    public int column;
+
+    Cell(int row, int column) {
+        this.row = row;
+        this.column = column;
+    }
+}
+
 public class Board {
     
     private Piece[][] board;
+    private int rows;
+    private int columns;
+    private State state = State.IN_PROGRESS;
 
     private List<BoardObserver> observers = new ArrayList<>();
 
     Board(int rows, int columns) {
-        board = new Piece[rows][columns];
+        this.rows = rows;
+        this.columns = columns;
+        this.board = new Piece[rows][columns];
         reset();
     }
 
-    public void reset() {
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[i].length; j++) {
-                board[i][j] = Piece.NONE;
+    public List<Cell> getAllCells() {
+        ArrayList<Cell> list = new ArrayList<>(rows*columns);
+        for (int row = 0; row < rows; row++) {
+            for (int column = 0; column < columns; column++) {
+                list.add(new Cell(row, column));
             }
         }
+        return list;
+    }
+
+    public void reset() {
+        for (Cell cell : getAllCells()) {
+            setPiece(cell, Piece.NONE);
+        }
+        state = State.IN_PROGRESS;
         notifyObserversOfBoardChange();
+        notifyObserversOfStateChange();
     }
 
     public String pieceAtPositionAsString(int row, int col) {
@@ -36,27 +68,61 @@ public class Board {
     }
 
     public void setPiece(int row, int col, Piece piece) {
+        if (state != State.IN_PROGRESS) return;
         board[row][col] = piece;
         notifyObserversOfBoardChange();
-        Piece winner = winningPlayer(row, col);
-        if (winner != Piece.NONE) {
-            notifyObserversOfPlayerWin(winner);
-        }
+        updateState(new Cell(row, col));
     }
 
-    public Piece at(int row, int col) {
-        return board[row][col];
+    public void setPiece(Cell cell, Piece piece) {
+        // TODO: Move everything from row, column -> Cell
+        board[cell.row][cell.column] = piece;
+        notifyObserversOfBoardChange();
+        updateState(cell);
     }
 
     public void registerObserver(BoardObserver observer) {
         observers.add(observer);
     }
 
-    private Piece winningPlayer(int row, int col) {
-        if (isWinner(row, col)) {
-            return board[row][col];
+    public int getRows() {
+        return rows;
+    }
+
+    public int getColumns() {
+        return columns;
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    public Piece at(Cell cell) {
+        return board[cell.row][cell.column];
+    }
+
+    public int emptyCellsCount() {
+        int count = 0;
+        for (Cell cell : getAllCells()) {
+            if (at(cell) == Piece.NONE) count += 1;
         }
-        return Piece.NONE;
+        return count;
+    }
+
+    private void updateState(Cell cell) {
+        State newState = newStateAfterPiecePlacement(cell);
+        boolean stateChange = (state != newState);
+        state = newState;
+        if (stateChange) notifyObserversOfStateChange();
+    }
+
+    private State newStateAfterPiecePlacement(Cell cell) {
+        if (isWinner(cell.row, cell.column)) {
+            if (at(cell) == Piece.CROSS) return State.CROSS_WIN;
+            return State.CIRCLE_WIN;
+        }
+        if (emptyCellsCount() == 0) return State.DRAW;
+        return State.IN_PROGRESS;
     }
 
     private boolean isWinner(int row, int col) {
@@ -102,9 +168,9 @@ public class Board {
         }
     }
 
-    private void notifyObserversOfPlayerWin(Piece winner) {
+    private void notifyObserversOfStateChange() {
         for (BoardObserver observer : observers) {
-            observer.onPlayerWin(winner);
+            observer.onStateChange();
         }
     }
 
