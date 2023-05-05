@@ -53,10 +53,10 @@ public class Board {
     }
 
     public void reset() {
+        state = State.IN_PROGRESS;
         for (Cell cell : getAllCells()) {
             setPiece(cell, Piece.NONE);
         }
-        state = State.IN_PROGRESS;
         notifyObserversOfBoardChange();
         notifyObserversOfStateChange();
     }
@@ -67,18 +67,11 @@ public class Board {
         return " ";
     }
 
-    public void setPiece(int row, int col, Piece piece) {
-        if (state != State.IN_PROGRESS) return;
-        board[row][col] = piece;
-        notifyObserversOfBoardChange();
-        updateState(new Cell(row, col));
-    }
-
     public void setPiece(Cell cell, Piece piece) {
-        // TODO: Move everything from row, column -> Cell
+        if (state != State.IN_PROGRESS) return;
         board[cell.row][cell.column] = piece;
         notifyObserversOfBoardChange();
-        updateState(cell);
+        if (piece != Piece.NONE) updateState(cell);
     }
 
     public void registerObserver(BoardObserver observer) {
@@ -114,10 +107,11 @@ public class Board {
         boolean stateChange = (state != newState);
         state = newState;
         if (stateChange) notifyObserversOfStateChange();
+        if (state == State.CIRCLE_WIN || state == State.CROSS_WIN) notifyObserversOfPlayerWin(getWinnerCells(cell));
     }
 
     private State newStateAfterPiecePlacement(Cell cell) {
-        if (isWinner(cell.row, cell.column)) {
+        if (isWinner(cell)) {
             if (at(cell) == Piece.CROSS) return State.CROSS_WIN;
             return State.CIRCLE_WIN;
         }
@@ -125,41 +119,60 @@ public class Board {
         return State.IN_PROGRESS;
     }
 
-    private boolean isWinner(int row, int col) {
-        return isRowWinner(row) || isColumnWinner(col) || isDiagonalWinner(row, col);
+    private List<Cell> getWinnerCells(Cell cell) {
+        List<Cell> winnerCells = new ArrayList<>();
+        if (isRowWinner(cell)) {
+            for (int column = 0; column < columns; column++) {
+                winnerCells.add(new Cell(cell.row, column));
+            }
+        } else if (isColumnWinner(cell)) {
+            for (int row = 0; row < rows; row++) {
+                winnerCells.add(new Cell(row, cell.column));
+            }
+        } else if (isNegativeDiagonalWinner(cell)) {
+            for (int row = 0; row < rows; row++) {
+                winnerCells.add(new Cell(row, row));
+            }
+        } else if (isPositiveDiagonalWinner(cell)) {
+            for (int row = 0; row < rows; row++) {
+                winnerCells.add(new Cell(row, columns-row-1));
+            }
+        }
+        return winnerCells;
     }
 
-    private boolean isRowWinner(int row) {
-        for (int i = 1; i < board[row].length; i++) {
-            if (board[row][i-1] != board[row][i]) return false;
+    private boolean isWinner(Cell cell) {
+        return isRowWinner(cell) || isColumnWinner(cell) || isNegativeDiagonalWinner(cell) || isPositiveDiagonalWinner(cell);
+    }
+
+    private boolean isRowWinner(Cell cell) {
+        for (int i = 1; i < columns; i++) {
+            if (board[cell.row][i-1] != board[cell.row][i]) return false;
         }
         return true;
     }
 
-    private boolean isColumnWinner(int col) {
-        for (int i = 1; i < board.length; i++) {
-            if (board[i-1][col] != board[i][col]) return false;
+    private boolean isColumnWinner(Cell cell) {
+        for (int i = 1; i < rows; i++) {
+            if (board[i-1][cell.column] != board[i][cell.column]) return false;
         }
         return true;
     }
 
-    private boolean isDiagonalWinner(int row, int col) {
-        boolean winnerFound = false;
-        // Is on the postive diagonal 
-        if (row == col) {
-            winnerFound = true;
-            for (int i = 1; i < board.length; i++) {
-                if (board[i-1][i-1] != board[i][i]) winnerFound = false;
-            }
+    private boolean isNegativeDiagonalWinner(Cell cell) { 
+        if (cell.row != cell.column) return false;
+        for (int i = 1; i < rows; i++) {
+            if (board[i-1][i-1] != board[i][i]) return false;
         }
-        // Is on the negative diagonal 
-        if (row + col == 2) {
-            winnerFound = true;
-            for (int i = 1; i < board.length; i++) {
-                if (board[i-1][3-i] != board[i][2-i]) winnerFound = false;
-            }
+        return true;
+    }
+
+    private boolean isPositiveDiagonalWinner(Cell cell) { 
+        if (cell.row + cell.column != rows - 1) return false;
+        for (int i = 1; i < rows; i++) {
+            if (board[i-1][rows-i] != board[i][rows-i-1]) return false;
         }
-        return winnerFound;
+        return true;
     }
 
     private void notifyObserversOfBoardChange() {
@@ -171,6 +184,12 @@ public class Board {
     private void notifyObserversOfStateChange() {
         for (BoardObserver observer : observers) {
             observer.onStateChange();
+        }
+    }
+
+    private void notifyObserversOfPlayerWin(List<Cell> cells) {
+        for (BoardObserver observer : observers) {
+            observer.onPlayerWin(cells);
         }
     }
 

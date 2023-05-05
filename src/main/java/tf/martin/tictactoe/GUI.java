@@ -2,6 +2,7 @@ package main.java.tf.martin.tictactoe;
 
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.util.List;
 import javax.swing.*;
 
 public class GUI extends JFrame implements BoardObserver {
@@ -60,9 +61,17 @@ public class GUI extends JFrame implements BoardObserver {
         winnerLabel.setText(String.format("State: %s", board.getState()));
     }
 
+    @Override
+    public void onPlayerWin(List<Cell> cells) {
+        for (Cell cell : cells) {
+            buttons[cell.row][cell.column].setBackground(Color.RED);
+        }
+    }
+
     private void setBoardText() {
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
+                buttons[row][col].setBackground(Color.WHITE);
                 buttons[row][col].setText(board.pieceAtPositionAsString(row, col));
             }
         }

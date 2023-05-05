@@ -26,7 +26,7 @@ enum Player {
     }
 }
 
-public class Game implements BoardObserver{
+public class Game {
 
     static final int ROWS = 3;
     static final int COLUMNS = 3;
@@ -40,12 +40,12 @@ public class Game implements BoardObserver{
         this.board = new Board(ROWS, COLUMNS);
         this.gui = new GUI(board, new PlacePieceActionFactory(this), (e -> restart()));
         this.board.registerObserver(gui);
-        this.board.registerObserver(this);
     }
 
     public boolean placePiece(int row, int col) {
-        if (board.at(new Cell(row, col)) != Piece.NONE) return false;
-        board.setPiece(row, col, player.getPiece());
+        Cell cell = new Cell(row, col);
+        if (board.at(cell) != Piece.NONE) return false;
+        board.setPiece(cell, player.getPiece());
         player = player.next();
         return true;
     }
@@ -53,15 +53,6 @@ public class Game implements BoardObserver{
     public void restart() {
         board.reset();
         player = STARTING_PLAYER;
-    }
-
-    @Override
-    public void onBoardChange() {}
-
-    @Override
-    public void onStateChange() {
-        // if (board.getState())
-        // board.reset();
     }
 }
 
