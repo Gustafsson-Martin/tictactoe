@@ -10,7 +10,7 @@ public class GUI extends JFrame implements BoardObserver {
     private static final int FRAME_MIN_HEIGHT = 600;
     private static final Color GRAY_ISH = new Color(230, 230, 230);
     
-    private JButton[][] buttons = new JButton[3][3];
+    private JButton[][] buttons;
     private JLabel winnerLabel;
     private GridBagConstraints gridBagConstraints = new GridBagConstraints();
 
@@ -18,17 +18,18 @@ public class GUI extends JFrame implements BoardObserver {
     private final int rows;
     private final int columns;
 
-    public GUI(Board board, PlacePieceActionFactory buttonPressActionFactory, ActionListener restartButtonAction) {
+    public GUI(Board board, Player player, ActionListener restartButtonAction) {
         super("Tic Tac Toe");
         this.board = board;
         this.rows = board.getRows();
         this.columns = board.getColumns();
+        this.buttons = new JButton[rows][columns];
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(FRAME_MIN_WIDTH, FRAME_MIN_HEIGHT));
         setLayout(new GridBagLayout());
 
-        JPanel buttonPanel = createButtonPanel(buttonPressActionFactory);
+        JPanel buttonPanel = createButtonPanel(player);
         JPanel sidePanel = createSidePanel(restartButtonAction);
 
         gridBagConstraints.fill = GridBagConstraints.BOTH;
@@ -69,20 +70,20 @@ public class GUI extends JFrame implements BoardObserver {
     }
 
     private void setBoardText() {
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < columns; col++) {
                 buttons[row][col].setBackground(Color.WHITE);
                 buttons[row][col].setText(board.pieceAtPositionAsString(row, col));
             }
         }
     }
 
-    private JPanel createButtonPanel(PlacePieceActionFactory buttonPressActionFactory) {
+    private JPanel createButtonPanel(Player player) {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new GridLayout(rows, columns));
         buttonPanel.setBackground(Color.BLACK);
 
-        createButtons(buttonPressActionFactory);
+        createButtons(player);
         for (int row = 0; row < rows; row++) {
             for (int columnn = 0; columnn < columns; columnn++) {
                 buttonPanel.add(buttons[row][columnn]);
@@ -114,14 +115,15 @@ public class GUI extends JFrame implements BoardObserver {
         return sidePanel;
     }
 
-    private void createButtons(PlacePieceActionFactory buttonPressActionFactory) {
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
+    private void createButtons(Player player) {
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < columns; col++) {
+                Cell cell = new Cell(row, col);
                 JButton button = new JButton();
                 Font font = new Font("Serif", Font.BOLD, 120);
                 button.setFont(font);
                 button.setFocusable(false);
-                button.addActionListener(buttonPressActionFactory.build(row, col));
+                button.addActionListener(e -> player.setMove(cell));
                 button.setBackground(Color.white);
                 button.setBorder(BorderFactory.createLineBorder(Color.black, 8));
                 button.setPreferredSize(calculateContentSizeBasedOnFont(button, font));

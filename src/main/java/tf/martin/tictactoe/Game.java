@@ -1,88 +1,68 @@
 package main.java.tf.martin.tictactoe;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.EnumMap;
-import java.util.Map;
+import java.util.List;
 
-enum Player {
-    CROSS,
-    CIRCLE;
+class CircularList<T> {
+    private int index;
+    private List<T> items;
 
-    private static final Player[] fastValuesCopy = values();
-    private static final Map<Player, Piece> pieceMap = new EnumMap<>(Player.class);
-
-    static {
-        pieceMap.put(Player.CROSS, Piece.CROSS);
-        pieceMap.put(Player.CIRCLE, Piece.CIRCLE);
+    CircularList(List<T> items) {
+        this.items = items;
+        this.index = 0;
     }
 
-    public Player next() {
-        return fastValuesCopy[(ordinal() + 1) % fastValuesCopy.length];
+    public void reset() {
+        index = 0;
     }
 
-    public Piece getPiece() {
-        return pieceMap.get(this);
+    public T next() {
+        index = (index + 1) % items.size();
+        return items.get(index);
+    }
+
+    public T current() {
+        return items.get(index);
     }
 }
 
 public class Game {
-
     static final int ROWS = 3;
     static final int COLUMNS = 3;
-    static final Player STARTING_PLAYER = Player.CROSS;
 
-    private Player player = STARTING_PLAYER;
     private Board board;
     private GUI gui;
+    private Player humanPlayer;
+    private Bot bot;
+    private CircularList<Player> players;
 
     Game() {
         this.board = new Board(ROWS, COLUMNS);
-        this.gui = new GUI(board, new PlacePieceActionFactory(this), (e -> restart()));
+        this.humanPlayer = new Player(Piece.CROSS);
+        this.bot = new Bot(board, Piece.CIRCLE);
+        this.players = new CircularList<Player>(List.of(humanPlayer, bot));
+        this.gui = new GUI(board, humanPlayer, (e -> startNewGame()));
         this.board.registerObserver(gui);
+        startNewGame();
     }
 
-    public boolean placePiece(int row, int col) {
-        Cell cell = new Cell(row, col);
+    private void startNewGame() {
+        Thread thread = new Thread(new Runnable() {
+            public void run() {
+                board.reset();
+                players.reset();
+                while (board.getState() == State.IN_PROGRESS) {
+                    Player player = players.current();
+                    boolean moveSuccess = makeMove(player.getMove(), player.getPiece());
+                    if (moveSuccess) players.next();
+                }
+            }
+        });
+        thread.start();
+    }
+
+    public boolean makeMove(Cell cell, Piece piece) {
         if (board.at(cell) != Piece.NONE) return false;
-        board.setPiece(cell, player.getPiece());
-        player = player.next();
+        board.setPiece(cell, piece);
         return true;
     }
-
-    public void restart() {
-        board.reset();
-        player = STARTING_PLAYER;
-    }
-}
-
-class PlacePieceActionFactory {
-    private Game game;
-
-    PlacePieceActionFactory(Game game) {
-        this.game = game;
-    };
-
-    public PlacePieceAction build(int row, int col) {
-        return new PlacePieceAction(game, row, col);
-    }
-}
-
-class PlacePieceAction implements ActionListener {
-
-    private int row;
-    private int col;
-    private Game game;
-
-    PlacePieceAction(Game game, int row, int col) {
-        this.game = game;
-        this.row = row;
-        this.col = col;
-    }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        game.placePiece(row, col);
-    }
-    
 }

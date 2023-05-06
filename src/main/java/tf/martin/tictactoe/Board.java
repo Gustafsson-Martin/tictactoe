@@ -42,6 +42,16 @@ public class Board {
         reset();
     }
 
+    public Board(Board original) {
+        this.rows = original.rows;
+        this.columns = original.columns;
+        this.board = new Piece[rows][columns];
+        this.state = State.IN_PROGRESS;
+        for (Cell cell : original.getAllCells()) {
+            board[cell.row][cell.column] = original.at(cell);
+        }
+    }
+
     public List<Cell> getAllCells() {
         ArrayList<Cell> list = new ArrayList<>(rows*columns);
         for (int row = 0; row < rows; row++) {
