@@ -8,16 +8,17 @@ public class Player {
         this.piece = piece;
     }
 
-    public void setMove(Cell move) {
+    public synchronized void setMove(Cell move) {
         this.move = move;
+        notify();
     }
 
-    public Cell getMove() {
+    public synchronized Cell getMove() {
         while (this.move == null) {
             try {
-                Thread.sleep(100);
+                wait();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                continue;
             }
         }
         Cell rv = move;

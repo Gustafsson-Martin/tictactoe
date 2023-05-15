@@ -6,7 +6,12 @@ import java.util.List;
 enum Piece {
     NONE,
     CROSS,
-    CIRCLE
+    CIRCLE;
+
+    Piece next() {
+        if (this == Piece.CIRCLE) return Piece.CROSS;
+        return Piece.CIRCLE;
+    }
 }
 
 enum State {
@@ -57,6 +62,18 @@ public class Board {
         for (int row = 0; row < rows; row++) {
             for (int column = 0; column < columns; column++) {
                 list.add(new Cell(row, column));
+            }
+        }
+        return list;
+    }
+
+    public List<Cell> getEmptyCells() {
+        ArrayList<Cell> list = new ArrayList<>(rows*columns);
+        for (int row = 0; row < rows; row++) {
+            for (int column = 0; column < columns; column++) {
+                Cell cell = new Cell(row, column);
+                if (at(cell) != Piece.NONE) continue;
+                list.add(cell);
             }
         }
         return list;

@@ -26,20 +26,22 @@ class CircularList<T> {
 }
 
 public class Game {
-    static final int ROWS = 3;
-    static final int COLUMNS = 3;
+    static final int ROWS = 4;
+    static final int COLUMNS = 4;
 
     private Board board;
     private GUI gui;
     private Player humanPlayer;
     private Bot bot;
+    private Bot bot2;
     private CircularList<Player> players;
 
     Game() {
         this.board = new Board(ROWS, COLUMNS);
-        this.humanPlayer = new Player(Piece.CROSS);
-        this.bot = new Bot(board, Piece.CIRCLE);
-        this.players = new CircularList<Player>(List.of(humanPlayer, bot));
+        this.humanPlayer = new Player(Piece.CIRCLE);
+        this.bot = new Bot(board, Piece.CROSS);
+        this.bot2 = new Bot(board, Piece.CIRCLE);
+        this.players = new CircularList<Player>(List.of(bot, bot2));
         this.gui = new GUI(board, humanPlayer, (e -> startNewGame()));
         this.board.registerObserver(gui);
         startNewGame();
@@ -50,10 +52,16 @@ public class Game {
             public void run() {
                 board.reset();
                 players.reset();
+                humanPlayer.setMove(null);
                 while (board.getState() == State.IN_PROGRESS) {
                     Player player = players.current();
                     boolean moveSuccess = makeMove(player.getMove(), player.getPiece());
                     if (moveSuccess) players.next();
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         });
